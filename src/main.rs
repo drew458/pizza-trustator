@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, time::SystemTime};
 use arboard::Clipboard;
 use serde::{Deserialize, Serialize};
 
@@ -10,10 +10,12 @@ struct ResponseReturned {
 
 #[tokio::main]
 async fn main() -> Result<(), reqwest::Error> {
+    let start = SystemTime::now();
+
     let mut clipboard = Clipboard::new().unwrap();
     let clipboard_text = clipboard.get_text().unwrap();
 
-    println!("\nTranslating {}...\n", clipboard_text);
+    println!("\nTranslating: {}", clipboard_text);
 
     let mut request = HashMap::new();
     request.insert("source", "auto");
@@ -42,6 +44,7 @@ async fn main() -> Result<(), reqwest::Error> {
             panic!("Unexpected error.");
         },
     };
-    
+
+    println!("Translated in {:?} milliseconds", SystemTime::now().duration_since(start).unwrap().as_millis());
     Ok(())
 }
