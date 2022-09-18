@@ -1,4 +1,4 @@
-# pizza-trustator
+# pizza-tRUSTator
 
 A simple script that retrieves text from clipboard and translates it in Italian.  
 It automatically detects the languange from which you want to translate.
