@@ -1,5 +1,7 @@
 use std::{collections::HashMap, time::SystemTime};
 use arboard::Clipboard;
+
+use reqwest::{Client, Response};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -24,21 +26,14 @@ async fn main() -> Result<(), reqwest::Error> {
 
     let client = reqwest::Client::new();
 
-    let response = client.post("https://deep-translator-api.azurewebsites.net/google/")
-        .header(reqwest::header::ACCEPT, "application/json")
-        .json(&request)
-        .send()
-        .await?;
+    let google_response = google_translation(&client, &request).await?;
 
-    match response.status() {
+    match google_response.status() {
         reqwest::StatusCode::OK => {
-            match response.json::<ResponseReturned>().await {
+            match google_response.json::<ResponseReturned>().await {
                 Ok(response_parsed) => println!("Result: {}\n", response_parsed.translation),
                 Err(_) => print!("Unexpected response returned.")
             };
-        },
-        reqwest::StatusCode::UNAUTHORIZED => {
-            println!("Need to grab a new token");
         },
         _ => {
             panic!("Unexpected error.");
@@ -47,4 +42,11 @@ async fn main() -> Result<(), reqwest::Error> {
 
     println!("Translated in {:?} milliseconds", SystemTime::now().duration_since(start).unwrap().as_millis());
     Ok(())
+}
+
+async fn google_translation(client: &Client, request: &HashMap<&str, &str>) -> Result<Response, reqwest::Error> {
+    return client.post("https://deep-translator-api.azurewebsites.net/google/")
+        .header(reqwest::header::ACCEPT, "application/json")
+        .json(request)
+        .send().await;
 }
