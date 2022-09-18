@@ -2,34 +2,36 @@ use std::collections::HashMap;
 use arboard::Clipboard;
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 struct ResponseReturned {
     translation: String,
-    error: String
+    error: Option<String>
 }
 
 #[tokio::main]
-async fn main() {
+async fn main() -> Result<(), reqwest::Error> {
     let mut clipboard = Clipboard::new().unwrap();
     let clipboard_text = clipboard.get_text().unwrap();
 
-    let mut map = HashMap::new();
-    map.insert("source", "auto");
-    map.insert("target", "italian");
-    map.insert("text", &clipboard_text);
+    println!("\nTranslating {}...\n", clipboard_text);
+
+    let mut request = HashMap::new();
+    request.insert("source", "auto");
+    request.insert("target", "italian");
+    request.insert("text", &clipboard_text);
 
     let client = reqwest::Client::new();
 
-    let res = client.post("https://deep-translator-api.azurewebsites.net/google/")
-        .json(&map)
+    let response = client.post("https://deep-translator-api.azurewebsites.net/google/")
+        .header(reqwest::header::ACCEPT, "application/json")
+        .json(&request)
         .send()
-        .await
-        .unwrap();
+        .await?;
 
-    match res.status() {
+    match response.status() {
         reqwest::StatusCode::OK => {
-            match res.json::<ResponseReturned>().await {
-                Ok(parsed) => println!("{:?}", parsed.translation),
+            match response.json::<ResponseReturned>().await {
+                Ok(response_parsed) => println!("Result: {}\n", response_parsed.translation),
                 Err(_) => print!("Unexpected response returned.")
             };
         },
@@ -37,7 +39,9 @@ async fn main() {
             println!("Need to grab a new token");
         },
         _ => {
-            panic!("Uh oh! Something unexpected happened.");
+            panic!("Unexpected error.");
         },
     };
+    
+    Ok(())
 }
